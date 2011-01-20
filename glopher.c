@@ -1,3 +1,4 @@
+#include <glib.h>
 #include <gio/gio.h>
 #include <gtk/gtk.h>
 #include <clutter/clutter.h>
@@ -6,8 +7,9 @@
 #include <string.h>
 
 ClutterActor *stage = NULL;
+ClutterActor *current_page = NULL;
 
-gchar g_gopher_request(gchar *);
+gchar * g_gopher_request(gchar *);
 
 /*
  *static gboolean on_stage_color_change (ClutterStage *stage, ClutterEvent *event, gpointer user_data) {
@@ -35,9 +37,10 @@ static gboolean on_addressbar_change (GtkEntry *entry, gpointer user_data) {
 
 /* Handles Address Bar <enter> */
 static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
-	gchar * url = gtk_entry_get_text(entry);
-	gchar * gopher_url_shema = "gopher://";
-	gchar * full_url;
+	GError * error = NULL;
+	gchar  * url = gtk_entry_get_text(entry);
+	gchar  * gopher_url_shema = "gopher://";
+	gchar  * full_url;
 
 	if (!strcasestr(url, gopher_url_shema)) {
 		full_url = g_strdup_printf("%s%s", gopher_url_shema, url);
@@ -47,7 +50,36 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 	}
 
 	g_debug("Requested %s\n", full_url);
-	g_gopher_request(full_url);
+	gchar * page = g_gopher_request(full_url);
+
+	g_debug("Printing page:");
+	g_print("%s\n", page);
+
+	g_debug("Trying to convert");
+	gchar  * page_utf8 = g_convert(page, -1, "UTF-8", "ASCII", NULL, NULL, &error);
+	g_debug("Done");
+
+	g_debug("Printing UTF-8 page:");
+	g_print("%s", page_utf8);
+
+	if (error) {
+		g_debug(error->message);
+	} else {
+		g_debug("No errors in conversion");
+	}
+
+
+
+	if (g_utf8_validate (page_utf8, -1, NULL)) {
+		g_debug("applying markup");
+		gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>");
+		g_print("%s\n", markup);
+		g_debug("done");
+
+		clutter_text_set_markup(CLUTTER_TEXT(current_page), markup);
+	} else {
+		g_debug("Page is invalid utf8");
+	}
 
 	return TRUE;
 }
@@ -71,35 +103,38 @@ GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
 	}
 }
 
-gchar g_gopher_request (gchar *url) {
+gchar * g_gopher_request (gchar *url) {
 
-	GSocket * socket;
 	GError  * error;
 	gchar   * locator;
-	gchar   * page;
+	gchar   * page = "";
 
-	gchar   buffer[2048];
+	gchar   buffer[4096];
 	gint 	total 	= 0;
 	gint 	size 	= 0;
 
-	socket = g_gopher_socket_connect("antono.info", 70, &error);
+	GSocket * socket = g_gopher_socket_connect("localhost", 70, &error);
 
 	if (socket) {
 		locator = strdup("/about/antono\n");
 
 		g_socket_send(socket, locator, strlen(locator), NULL, NULL);
 		
-		while ( (size = g_socket_receive(socket, buffer, 2048, NULL, NULL)) ) {
+		while ( (size = g_socket_receive(socket, buffer, 4096, NULL, NULL)) ) {
 			g_print("\n\n=>> Got %d bytes\n\n", total += size);
-			g_print("%s", buffer);
+			page = g_strjoin(NULL, page, g_strdup(buffer));
 		}
 
-		g_debug("Done!");
 	} else {
 		g_warning("%s", error->message);
-		error = NULL;
+		g_free(error);
 	}
-	return TRUE;
+
+	g_debug("What we got:");
+	g_print("%s\n", page);
+	g_debug("Done!");
+
+	return page;
 }
 
 /*
@@ -117,7 +152,6 @@ gchar g_gopher_request (gchar *url) {
 
 int main(int argc, char *argv[])
 {
-  ClutterColor stage_color = { 0x00, 0x00, 0x00, 0xff }; /* Black */
 
   gtk_clutter_init (&argc, &argv);
 
@@ -143,18 +177,32 @@ int main(int argc, char *argv[])
 		  G_CALLBACK(on_addressbar_activate), NULL);
 
   /* create stage */
-  GtkWidget *clutter_widget = gtk_clutter_embed_new();
+  ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
+  GtkWidget 	*clutter_widget	= gtk_clutter_embed_new();
   gtk_box_pack_start(GTK_BOX (vbox), clutter_widget, TRUE, TRUE, 0);
   gtk_widget_show(clutter_widget);
-
-  gtk_widget_set_size_request(clutter_widget, 200, 100);
+  gtk_widget_set_size_request(clutter_widget, 600, 500);
 
   /* Get the stage and set its size and color: */
   stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(clutter_widget));
   clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
-
-  /* Show the stage: */
   clutter_actor_show (stage);
+
+  /* Create Clutter Text Actor */
+  ClutterColor  text_color	= { 0x33, 0xff, 0x33, 0xff };
+  ClutterColor  cursor_color	= { 0xff, 0x33, 0x33, 0xff };
+  ClutterText	* text 		= clutter_text_new();
+  current_page = text;
+
+  clutter_text_set_color (CLUTTER_TEXT(text), &text_color);
+  clutter_text_set_cursor_color (CLUTTER_TEXT(text), &cursor_color);
+  clutter_text_set_selectable (CLUTTER_TEXT(text), TRUE);
+  clutter_actor_set_reactive (CLUTTER_TEXT(text), TRUE);
+  clutter_text_set_font_name (text, "Monospace 24pt");
+  clutter_text_set_markup(text, strdup("<tt>hello world!</tt>"));
+  clutter_stage_set_key_focus (CLUTTER_ACTOR(stage), text);
+  clutter_actor_set_position(text, 10, 10);
+  clutter_container_add (CLUTTER_CONTAINER (stage), CLUTTER_ACTOR(text), NULL);
 
   /* Connect a signal handler to handle mouse clicks and key presses on the stage: */ 
   /*g_signal_connect (stage, "button-press-event",*/
@@ -163,8 +211,6 @@ int main(int argc, char *argv[])
   /*                G_CALLBACK (on_stage_button_press), NULL);*/
   /*g_signal_connect (stage, "button-press-event",*/
   /*                G_CALLBACK (on_stage_click), NULL);*/
-
-
 
   gtk_widget_show(window);
 
