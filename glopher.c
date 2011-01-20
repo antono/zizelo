@@ -10,6 +10,8 @@ ClutterActor *stage = NULL;
 ClutterActor *current_page = NULL;
 
 gchar * g_gopher_request(gchar *);
+char * strcasestr (const char *haystack, const char *needle);
+
 
 /*
  *static gboolean on_stage_color_change (ClutterStage *stage, ClutterEvent *event, gpointer user_data) {
@@ -113,7 +115,7 @@ gchar * g_gopher_request (gchar *url) {
 	gint 	total 	= 0;
 	gint 	size 	= 0;
 
-	GSocket * socket = g_gopher_socket_connect("localhost", 70, &error);
+	GSocket * socket = g_gopher_socket_connect("localhost", 70, error);
 
 	if (socket) {
 		locator = strdup("/about/antono\n");
@@ -152,6 +154,15 @@ gchar * g_gopher_request (gchar *url) {
 
 int main(int argc, char *argv[]) {
 
+	/*gchar *uris  = strdup("gopher://antono.info/\nhttp://antono.info/");*/
+	/*list  **urls = g_uri_list_extract_uris (uris);*/
+
+	/*while (*urls++ != NULL) {*/
+	/*       g_print("%s\n", uris++);*/
+	/*}*/
+
+
+	/*g_url*/
 	gtk_clutter_init (&argc, &argv);
 
 	/* create window */
@@ -159,14 +170,14 @@ int main(int argc, char *argv[]) {
 	g_signal_connect (window, "hide", G_CALLBACK(gtk_main_quit), NULL);
 
 	/* Vbox */
-	GtkWidget *vbox = gtk_vbox_new (FALSE, 6);
+	GtkWidget *vbox = gtk_vbox_new (FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(window), vbox);
 	gtk_widget_show (vbox);
 
 	/* Addressbar */
 	GtkWidget *entry = gtk_entry_new();
-	gtk_entry_set_max_length (entry, 255);
-	gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
+	gtk_entry_set_max_length (GTK_ENTRY(entry), 50);
+	gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
 	gtk_box_pack_start (GTK_BOX (vbox), entry, FALSE, FALSE, 0);
 	gtk_widget_show (entry);
 
@@ -188,19 +199,19 @@ int main(int argc, char *argv[]) {
 	clutter_actor_show (stage);
 
 	/* Create Clutter Text Actor */
-	ClutterColor  text_color	= { 0x33, 0xff, 0x33, 0xff };
-	ClutterColor  cursor_color	= { 0xff, 0x33, 0x33, 0xff };
-	ClutterText	* text 		= clutter_text_new();
+	ClutterColor	text_color	= { 0x33, 0xff, 0x33, 0xff };
+	ClutterColor	cursor_color	= { 0xff, 0x33, 0x33, 0xff };
+	ClutterText	*text		= clutter_text_new();
+
 	current_page = text;
 
 	clutter_text_set_color (CLUTTER_TEXT(text), &text_color);
 	clutter_text_set_cursor_color (CLUTTER_TEXT(text), &cursor_color);
 	clutter_text_set_selectable (CLUTTER_TEXT(text), TRUE);
-	clutter_actor_set_reactive (CLUTTER_TEXT(text), TRUE);
-	clutter_text_set_font_name (text, "Monospace 24pt");
-	clutter_text_set_markup(text, strdup("<tt>hello world!</tt>"));
-	clutter_stage_set_key_focus (CLUTTER_ACTOR(stage), text);
-	clutter_actor_set_position(text, 10, 10);
+	clutter_actor_set_reactive (CLUTTER_ACTOR(text), TRUE);
+	clutter_text_set_markup(CLUTTER_TEXT(text), strdup("<tt>hello world!</tt>"));
+	clutter_stage_set_key_focus (CLUTTER_STAGE(stage), CLUTTER_ACTOR(text));
+	clutter_actor_set_position(CLUTTER_ACTOR(text), 10, 10);
 	clutter_container_add (CLUTTER_CONTAINER (stage), CLUTTER_ACTOR(text), NULL);
 
 	/* Connect a signal handler to handle mouse clicks and key presses on the stage: */ 
