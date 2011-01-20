@@ -150,73 +150,72 @@ gchar * g_gopher_request (gchar *url) {
  *}
  */
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
-  gtk_clutter_init (&argc, &argv);
+	gtk_clutter_init (&argc, &argv);
 
-  /* create window */
-  GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  g_signal_connect (window, "hide", G_CALLBACK(gtk_main_quit), NULL);
+	/* create window */
+	GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	g_signal_connect (window, "hide", G_CALLBACK(gtk_main_quit), NULL);
 
-  /* Vbox */
-  GtkWidget *vbox = gtk_vbox_new (FALSE, 6);
-  gtk_container_add(GTK_CONTAINER(window), vbox);
-  gtk_widget_show (vbox);
+	/* Vbox */
+	GtkWidget *vbox = gtk_vbox_new (FALSE, 6);
+	gtk_container_add(GTK_CONTAINER(window), vbox);
+	gtk_widget_show (vbox);
 
-  /* Addressbar */
-  GtkWidget *entry = gtk_entry_new();
-  gtk_entry_set_max_length (entry, 255);
-  gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
-  gtk_box_pack_start (GTK_BOX (vbox), entry, FALSE, FALSE, 0);
-  gtk_widget_show (entry);
+	/* Addressbar */
+	GtkWidget *entry = gtk_entry_new();
+	gtk_entry_set_max_length (entry, 255);
+	gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
+	gtk_box_pack_start (GTK_BOX (vbox), entry, FALSE, FALSE, 0);
+	gtk_widget_show (entry);
 
-  g_signal_connect (entry, "changed",
-		  G_CALLBACK(on_addressbar_change), NULL);
-  g_signal_connect (entry, "activate",
-		  G_CALLBACK(on_addressbar_activate), NULL);
+	g_signal_connect (entry, "changed",
+			G_CALLBACK(on_addressbar_change), NULL);
+	g_signal_connect (entry, "activate",
+			G_CALLBACK(on_addressbar_activate), NULL);
 
-  /* create stage */
-  ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
-  GtkWidget 	*clutter_widget	= gtk_clutter_embed_new();
-  gtk_box_pack_start(GTK_BOX (vbox), clutter_widget, TRUE, TRUE, 0);
-  gtk_widget_show(clutter_widget);
-  gtk_widget_set_size_request(clutter_widget, 600, 500);
+	/* create stage */
+	ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
+	GtkWidget 	*clutter_widget	= gtk_clutter_embed_new();
+	gtk_box_pack_start(GTK_BOX (vbox), clutter_widget, TRUE, TRUE, 0);
+	gtk_widget_show(clutter_widget);
+	gtk_widget_set_size_request(clutter_widget, 600, 500);
 
-  /* Get the stage and set its size and color: */
-  stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(clutter_widget));
-  clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
-  clutter_actor_show (stage);
+	/* Get the stage and set its size and color: */
+	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(clutter_widget));
+	clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
+	clutter_actor_show (stage);
 
-  /* Create Clutter Text Actor */
-  ClutterColor  text_color	= { 0x33, 0xff, 0x33, 0xff };
-  ClutterColor  cursor_color	= { 0xff, 0x33, 0x33, 0xff };
-  ClutterText	* text 		= clutter_text_new();
-  current_page = text;
+	/* Create Clutter Text Actor */
+	ClutterColor  text_color	= { 0x33, 0xff, 0x33, 0xff };
+	ClutterColor  cursor_color	= { 0xff, 0x33, 0x33, 0xff };
+	ClutterText	* text 		= clutter_text_new();
+	current_page = text;
 
-  clutter_text_set_color (CLUTTER_TEXT(text), &text_color);
-  clutter_text_set_cursor_color (CLUTTER_TEXT(text), &cursor_color);
-  clutter_text_set_selectable (CLUTTER_TEXT(text), TRUE);
-  clutter_actor_set_reactive (CLUTTER_TEXT(text), TRUE);
-  clutter_text_set_font_name (text, "Monospace 24pt");
-  clutter_text_set_markup(text, strdup("<tt>hello world!</tt>"));
-  clutter_stage_set_key_focus (CLUTTER_ACTOR(stage), text);
-  clutter_actor_set_position(text, 10, 10);
-  clutter_container_add (CLUTTER_CONTAINER (stage), CLUTTER_ACTOR(text), NULL);
+	clutter_text_set_color (CLUTTER_TEXT(text), &text_color);
+	clutter_text_set_cursor_color (CLUTTER_TEXT(text), &cursor_color);
+	clutter_text_set_selectable (CLUTTER_TEXT(text), TRUE);
+	clutter_actor_set_reactive (CLUTTER_TEXT(text), TRUE);
+	clutter_text_set_font_name (text, "Monospace 24pt");
+	clutter_text_set_markup(text, strdup("<tt>hello world!</tt>"));
+	clutter_stage_set_key_focus (CLUTTER_ACTOR(stage), text);
+	clutter_actor_set_position(text, 10, 10);
+	clutter_container_add (CLUTTER_CONTAINER (stage), CLUTTER_ACTOR(text), NULL);
 
-  /* Connect a signal handler to handle mouse clicks and key presses on the stage: */ 
-  /*g_signal_connect (stage, "button-press-event",*/
-  /*                G_CALLBACK (on_stage_color_change), NULL);*/
-  /*g_signal_connect (stage, "button-press-event",*/
-  /*                G_CALLBACK (on_stage_button_press), NULL);*/
-  /*g_signal_connect (stage, "button-press-event",*/
-  /*                G_CALLBACK (on_stage_click), NULL);*/
+	/* Connect a signal handler to handle mouse clicks and key presses on the stage: */ 
+	/*g_signal_connect (stage, "button-press-event",*/
+	/*                G_CALLBACK (on_stage_color_change), NULL);*/
+	/*g_signal_connect (stage, "button-press-event",*/
+	/*                G_CALLBACK (on_stage_button_press), NULL);*/
+	/*g_signal_connect (stage, "button-press-event",*/
+	/*                G_CALLBACK (on_stage_click), NULL);*/
 
-  gtk_widget_show(window);
+	gtk_widget_show(window);
 
-  /* Start the main loop, so we can respond to events: */
-  gtk_main();
+	/* Start the main loop, so we can respond to events: */
+	gtk_main();
 
-  return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
 
