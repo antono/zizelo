@@ -5,14 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "glopher.h"
+#include "zizelo.h"
 #include "gophermap.h"
 #include "gophernet.h"
 
-ClutterActor *stage = NULL;
-ClutterActor *current_page = NULL;
-
 GtkTreeModel * addressbar_autocomplete_model_new (void) {
+
 	GtkListStore *store;
 	GtkTreeIter iter;
 
