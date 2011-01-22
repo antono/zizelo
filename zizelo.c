@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "zizelo.h"
-#include "gophermap.h"
 #include "gophernet.h"
 
 GtkTreeModel * addressbar_autocomplete_model_new (void) {

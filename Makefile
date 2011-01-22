@@ -7,8 +7,8 @@ VERSION = 0.1
 CC      = gcc
 CFLAGS  = -ggdb -O2 -Wall -I.
 LIBS    = gio-2.0 gtk+-2.0 clutter-1.0 clutter-gtk-0.10
-OBJ 	= gophermap.o gophernet.o guri.o
-HEADERS = gophermap.h gophernet.h guri.h
+OBJ 	= gophernet.o guri.o
+HEADERS = gophernet.h guri.h
 
 
 #
@@ -30,4 +30,4 @@ pg:
 .PHONY: clean
 
 clean:
-	rm -rf *.o *.swp core
+	rm -rf *.o *.swp core $(NAME)
