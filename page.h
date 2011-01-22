@@ -1,19 +1,19 @@
 typedef struct {
   const GArray  *parts;
   const GString *raw_page;
-} GlopherPage;
+} ZizeloPage;
 
 
 typedef struct {
   const ClutterActor *link;
-  const gchar uri;
   const gchar type;
+  const gchar uri;
   const gchar title;
-} GlopherLink;
+} ZizeloLink;
 
 typedef struct {
   const ClutterText *text;
-} GlopherText;
+} ZizeloText;
 
-GlopherPage * gloper_page_new(GString *);
-GlopherPage * gloper_page_parse(GlopherPage *);
+ZizeloPage * zz_page_new(GString *);
+ZizeloPage * zz_page_parse(ZizeloPage *);
