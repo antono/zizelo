@@ -1,44 +1,56 @@
 #include <glib.h>
-#include <gio/gio.h>
 #include <gtk/gtk.h>
 #include <clutter/clutter.h>
 #include <clutter-gtk/clutter-gtk.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "glopher.h"
+#include "gophermap.h"
+#include "gophernet.h"
+
 ClutterActor *stage = NULL;
 ClutterActor *current_page = NULL;
 
-gchar * g_gopher_request(gchar *);
-char * strcasestr (const char *haystack, const char *needle);
+GtkTreeModel * addressbar_autocomplete_model_new (void) {
+	GtkListStore *store;
+	GtkTreeIter iter;
 
+	store = gtk_list_store_new (1, G_TYPE_STRING);
 
-/*
- *static gboolean on_stage_color_change (ClutterStage *stage, ClutterEvent *event, gpointer user_data) {
- *        static gboolean already_changed = FALSE;
- *
- *        g_warning("Stage color change!");
- *        if (already_changed) {
- *                ClutterColor stage_color =  { 0x00, 0x00, 0x00, 0xff };
- *                clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
- *        } else {
- *                ClutterColor stage_color =  { 0x20, 0x20, 0x20, 0xff };
- *                clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
- *        }
- *
- *        already_changed = !already_changed;
- *
- *        return TRUE;
- *}
- */
+	/* Append one word */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, 0, "antono.info", -1);
+
+	/* Append another word */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, 0, "floodgap.com", -1);
+
+	/* And another word */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, 0, "about:", -1);
+
+	return GTK_TREE_MODEL (store);
+}
+
 
 static gboolean on_addressbar_change (GtkEntry *entry, gpointer user_data) {
-	g_print("%s\n", gtk_entry_get_text(entry));
+
+	gchar * text = gtk_entry_get_text(entry);
+
+	g_print("%s\n", text);
+
+	if (strstr(text, g_strdup("."))) {
+		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
+	} else {
+		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
+	}
 	return TRUE;
 }
 
 /* Handles Address Bar <enter> */
 static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
+
 	GError * error = NULL;
 	gchar  * url = gtk_entry_get_text(entry);
 	gchar  * gopher_url_shema = "gopher://";
@@ -52,10 +64,11 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 	}
 
 	g_debug("Requested %s\n", full_url);
-	gchar * page = g_gopher_request(full_url);
+	gchar * page = g_gopher_get(full_url);
 
 	g_debug("Printing page:");
 	g_print("%s\n", page);
+
 
 	g_debug("Trying to convert");
 	gchar  * page_utf8 = g_convert(page, -1, "UTF-8", "ASCII", NULL, NULL, &error);
@@ -66,19 +79,19 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 
 	if (error) {
 		g_debug(error->message);
+		g_free(error);
 	} else {
 		g_debug("No errors in conversion");
 	}
 
 
-
 	if (g_utf8_validate (page_utf8, -1, NULL)) {
 		g_debug("applying markup");
-		gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>");
+		gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>", NULL);
 		g_print("%s\n", markup);
 		g_debug("done");
-
 		clutter_text_set_markup(CLUTTER_TEXT(current_page), markup);
+		g_debug("drawing done");
 	} else {
 		g_debug("Page is invalid utf8");
 	}
@@ -86,58 +99,6 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 	return TRUE;
 }
 
-GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
-	GSocket            * socket;
-	GSocketClient      * client;
-	GSocketConnection  * connection;
-	GSocketConnectable * addr;
-
-	addr       = g_network_address_new (host, port);
-	client     = g_socket_client_new ();
-	connection = g_socket_client_connect (client, addr, NULL, &error);
-	socket     = g_socket_connection_get_socket (connection);
-
-	if (socket) {
-		return socket;
-	} else {
-		g_debug("Cannot create socket");
-		return NULL;
-	}
-}
-
-gchar * g_gopher_request (gchar *url) {
-
-	GError  * error;
-	gchar   * locator;
-	gchar   * page = "";
-
-	gchar   buffer[4096];
-	gint 	total 	= 0;
-	gint 	size 	= 0;
-
-	GSocket * socket = g_gopher_socket_connect("localhost", 70, error);
-
-	if (socket) {
-		locator = strdup("/about/antono\n");
-
-		g_socket_send(socket, locator, strlen(locator), NULL, NULL);
-		
-		while ( (size = g_socket_receive(socket, buffer, 4096, NULL, NULL)) ) {
-			g_print("\n\n=>> Got %d bytes\n\n", total += size);
-			page = g_strjoin(NULL, page, g_strdup(buffer));
-		}
-
-	} else {
-		g_warning("%s", error->message);
-		g_free(error);
-	}
-
-	g_debug("What we got:");
-	g_print("%s\n", page);
-	g_debug("Done!");
-
-	return page;
-}
 
 /*
  *static gboolean on_stage_button_press (ClutterStage *stage, ClutterEvent *event, gpointer data)
@@ -153,14 +114,6 @@ gchar * g_gopher_request (gchar *url) {
  */
 
 int main(int argc, char *argv[]) {
-
-	/*gchar *uris  = strdup("gopher://antono.info/\nhttp://antono.info/");*/
-	/*list  **urls = g_uri_list_extract_uris (uris);*/
-
-	/*while (*urls++ != NULL) {*/
-	/*       g_print("%s\n", uris++);*/
-	/*}*/
-
 
 	/*g_url*/
 	gtk_clutter_init (&argc, &argv);
@@ -182,9 +135,22 @@ int main(int argc, char *argv[]) {
 	gtk_widget_show (entry);
 
 	g_signal_connect (entry, "changed",
-			G_CALLBACK(on_addressbar_change), NULL);
+		       G_CALLBACK(on_addressbar_change), NULL);
 	g_signal_connect (entry, "activate",
 			G_CALLBACK(on_addressbar_activate), NULL);
+
+
+	/* Addressbar autocomplete */
+	GtkEntryCompletion *autocomplete = gtk_entry_completion_new ();
+	gtk_entry_set_completion (GTK_ENTRY (entry), autocomplete);
+	g_object_unref (autocomplete);
+
+	/* Create a tree model and use it as the completion model */
+	GtkTreeModel *completion_model = addressbar_autocomplete_model_new();
+	gtk_entry_completion_set_model (autocomplete, completion_model);
+	g_object_unref (completion_model);
+	gtk_entry_completion_set_text_column (autocomplete, 0); // Use model column 0 as the text column
+
 
 	/* create stage */
 	ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
@@ -229,4 +195,3 @@ int main(int argc, char *argv[]) {
 
 	return EXIT_SUCCESS;
 }
-
