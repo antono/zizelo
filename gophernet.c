@@ -28,10 +28,10 @@ gchar * g_gopher_get (gchar *url) {
 
 	GURI    * uri 	= g_uri_new(url);
 	GError  * error = NULL;
-	gchar 	* page	= strdup("");
+	GString * page	= g_string_new("");
 
-	gchar   *buffer = strdup("");
-	gint	bufpos   = 0;
+	gchar   buffer[1024];
+	gint	buffpos  = 0;
 	gint	total    = 0;
 	gint	received = 0;
 
@@ -50,13 +50,13 @@ gchar * g_gopher_get (gchar *url) {
 		g_free(locator);
 		
 		while ( (received = g_socket_receive (socket, buffer, 1024, NULL, NULL)) ) {
-			for (bufpos = 0; bufpos < received; bufpos++) {
-				*page++ = *(buffer++ -1);
+			for (buffpos = 0; buffpos < received; buffpos++) {
+				g_string_append_c(page, buffer[buffpos]);
 			}
 			g_print("\n\n=>> Got %d/%d bytes\n\n", received, total += received);
 		}
-		*page++ = NULL;
-		while (total--) page--;
+		/**page++ = NULL;*/
+		/*while (total--) page--;*/
 	} else {
 		g_warning("%s", error->message);
 		g_free(error);
@@ -64,8 +64,8 @@ gchar * g_gopher_get (gchar *url) {
 
 	g_free(uri);
 	g_debug("What we got:");
-	g_print("%s\n", page);
+	g_print("%s\n", page->str);
 	g_debug("Done!");
 
-	return page;
+	return page->str;
 }

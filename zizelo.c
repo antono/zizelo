@@ -18,29 +18,29 @@ GtkTreeModel * addressbar_autocomplete_model_new (void) {
 
 	store = gtk_list_store_new (1, G_TYPE_STRING);
 
-	/* Append one word */
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter, 0, "antono.info", -1);
 
-	/* Append another word */
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter, 0, "floodgap.com", -1);
 
-	/* And another word */
+	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, 0, "gophernicus.org", -1);
+
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter, 0, "about:", -1);
+
 
 	return GTK_TREE_MODEL (store);
 }
 
 
 static gboolean on_addressbar_change (GtkEntry *entry, gpointer user_data) {
-
 	gchar * text = gtk_entry_get_text(entry);
 
 	g_print("%s\n", text);
 
-	if (strstr(text, g_strdup("."))) {
+	if (strstr(text, g_strdup(".")) || strlen(text) == 0) {
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
 	} else {
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
@@ -53,29 +53,31 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 
 	GError * error = NULL;
 	gchar  * url = gtk_entry_get_text(entry);
-	gchar  * gopher_url_shema = "gopher://";
+	gchar  * gopher_url_schema = strdup("gopher://");
 	gchar  * full_url;
 
-	if (!strcasestr(url, gopher_url_shema)) {
-		full_url = g_strdup_printf("%s%s", gopher_url_shema, url);
+	if (!strstr(url, gopher_url_schema)) {
+		full_url = g_strdup_printf("%s%s", gopher_url_schema, url);
 		gtk_entry_set_text(entry, full_url);
 	} else {
 		full_url = url;
 	}
 
 	g_debug("Requested %s\n", full_url);
+
+	/* Handle ASCII */
 	gchar * page = g_gopher_get(full_url);
+	gchar * page_utf8;
 
-	g_debug("Printing page:");
-	g_print("%s\n", page);
-
-
-	g_debug("Trying to convert");
-	gchar  * page_utf8 = g_convert(page, -1, "UTF-8", "ASCII", NULL, NULL, &error);
-	g_debug("Done");
-
-	g_debug("Printing UTF-8 page:");
-	g_print("%s", page_utf8);
+	if (g_utf8_validate (page, -1, NULL)) {
+		page_utf8 = page;
+	} else {
+		g_debug("Trying to convert");
+		page_utf8 = g_convert(page, -1, "UTF-8", "ASCII", NULL, NULL, &error);
+		g_debug("Done");
+		g_debug("Printing UTF-8 page:");
+		g_print("%s", page_utf8);
+	}
 
 	if (error) {
 		g_debug(error->message);
@@ -84,17 +86,12 @@ static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 		g_debug("No errors in conversion");
 	}
 
-
-	if (g_utf8_validate (page_utf8, -1, NULL)) {
-		g_debug("applying markup");
-		gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>", NULL);
-		g_print("%s\n", markup);
-		g_debug("done");
-		clutter_text_set_markup(CLUTTER_TEXT(current_page), markup);
-		g_debug("drawing done");
-	} else {
-		g_debug("Page is invalid utf8");
-	}
+	g_debug("applying markup");
+	gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>", NULL);
+	g_print("%s\n", markup);
+	g_debug("done");
+	clutter_text_set_markup(CLUTTER_TEXT(current_page), markup);
+	g_debug("drawing done");
 
 	return TRUE;
 }

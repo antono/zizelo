@@ -1,7 +1,7 @@
 #
 # Variables and default configuration
 #
-NAME    = glopher
+NAME    = zizelo
 VERSION = 0.1
 
 CC      = gcc
@@ -18,10 +18,14 @@ all: $(OBJ)
 	$(CC) $(CFLAGS) -g $(NAME).c -o $(NAME) $(OBJ) `pkg-config $(LIBS) --cflags --libs`
 
 run: all
-	@./glopher
+	@./zizelo
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) `pkg-config $(LIBS) --cflags --libs`
+
+pg:
+	$(CC) $(CFLAGS) -g page.c -o page $(OBJ) `pkg-config $(LIBS) --cflags --libs`
+	@./page
 
 .PHONY: clean
 
