@@ -24,7 +24,7 @@ GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
 	}
 }
 
-gchar * g_gopher_get (gchar *url) {
+GString * g_gopher_get (gchar *url) {
 
 	GURI    * uri 	= g_uri_new(url);
 	GError  * error = NULL;
@@ -38,34 +38,53 @@ gchar * g_gopher_get (gchar *url) {
 	if (!uri->port) uri->port = 70;
 	if (!uri->path) uri->path = strdup("/");
 
-	g_debug(uri->hostname);
-	g_debug(uri->path);
-	g_print("%d", uri->port);
+	g_debug("%s", uri->hostname);
+	g_debug("%s", uri->path);
+	g_debug("%d", uri->port);
 
 	GSocket * socket = g_gopher_socket_connect(uri->hostname, uri->port, error);
 
 	if (socket) {
 		gchar * locator = g_strjoin(NULL, uri->path, "\n", NULL);
-		g_socket_send(socket, locator, strlen(locator), NULL, NULL);
+		g_socket_send_with_blocking(socket, locator, strlen(locator), FALSE, NULL, NULL);
 		g_free(locator);
 		
-		while ( (received = g_socket_receive (socket, buffer, 1024, NULL, NULL)) ) {
+		while ( (received = g_socket_receive_with_blocking (socket, buffer, 1024, FALSE, NULL, NULL)) ) {
 			for (buffpos = 0; buffpos < received; buffpos++) {
 				g_string_append_c(page, buffer[buffpos]);
 			}
-			g_print("\n\n=>> Got %d/%d bytes\n\n", received, total += received);
+			/*g_print("\n\n=>> Got %d/%d bytes\n\n", received, total += received);*/
 		}
-		/**page++ = NULL;*/
-		/*while (total--) page--;*/
 	} else {
 		g_warning("%s", error->message);
 		g_free(error);
 	}
 
-	g_free(uri);
-	g_debug("What we got:");
-	g_print("%s\n", page->str);
-	g_debug("Done!");
 
-	return page->str;
+	/* TODO Convert if needed */
+
+	/*gchar * page_utf8;*/
+
+	/*if (error) {*/
+	/*        g_debug(error->message);*/
+	/*        g_free(error);*/
+	/*} else {*/
+	/*        g_debug("No errors in conversion");*/
+	/*}*/
+	/*if (g_utf8_validate (page->str, -1, NULL)) {*/
+	/*        page_utf8 = page->str;*/
+	/*} else {*/
+	/*        g_debug("Trying to convert");*/
+	/*        page_utf8 = g_convert(page->str, -1, "UTF-8", "ASCII", NULL, NULL, &error);*/
+	/*        g_debug("Done");*/
+	/*        g_debug("Printing UTF-8 page:");*/
+	/*        g_print("%s", page_utf8);*/
+	/*}*/
+
+	g_free(uri);
+	/*g_debug("What we got:");*/
+	/*g_print("%s\n", page->str);*/
+	/*g_debug("Done!");*/
+
+	return page;
 }

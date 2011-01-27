@@ -6,7 +6,86 @@
 #include <string.h>
 
 #include "zizelo.h"
+#include "page.h"
 #include "gophernet.h"
+
+#define IFACE "data/zizelo.glade"
+
+GtkBuilder	*ui_builder;
+ClutterActor 	*stage;
+ClutterActor 	*viewport;
+ZzPage 		*current_page = NULL;
+
+GtkWidget 	*addressbar;
+
+G_MODULE_EXPORT void
+on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer     user_data)
+{
+	GtkWidget *about_dialog = GTK_WIDGET (gtk_builder_get_object (ui_builder, "zizelo_about"));
+	gtk_dialog_run (GTK_DIALOG (about_dialog));
+	gtk_widget_hide (about_dialog);
+}
+
+G_MODULE_EXPORT void
+on_addressbar_activate_cb (GtkEntry *entry, gpointer user_data) {
+
+	gchar * url = gtk_entry_get_text(entry);
+	gchar * gopher_url_schema = strdup("gopher://");
+	gchar * full_url;
+
+	if (!strstr(url, gopher_url_schema)) {
+		full_url = g_strdup_printf("%s%s", gopher_url_schema, url);
+	} else {
+		full_url = url;
+	}
+
+	gtk_entry_set_text(entry, full_url);
+	zz_open(full_url, TRUE);
+
+	return TRUE;
+}
+
+G_MODULE_EXPORT void
+on_addressbar_changed_cb (GtkEntry *entry, gpointer user_data) {
+
+	gchar * text = gtk_entry_get_text(entry);
+
+	g_print("%s\n", text);
+
+	if (strstr(text, g_strdup(".")) || strlen(text) == 0) {
+		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
+	} else {
+		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
+	}
+	return TRUE;
+}
+
+void zz_open(gchar *uri, gboolean menu) {
+	//g_debug("Requesting %s\n", uri);
+	
+	GString * page = g_gopher_get(uri);
+
+	if (current_page) clutter_container_remove_actor(CLUTTER_CONTAINER(viewport), current_page->actor);
+
+	current_page = zz_page_new(page, menu);
+
+	// Change addressbar content
+	gtk_entry_set_text(GTK_ENTRY(addressbar), uri);
+
+	// Add page actor to viewport
+	clutter_container_add(CLUTTER_CONTAINER(viewport), current_page->actor, NULL);
+	clutter_actor_set_position(CLUTTER_ACTOR(current_page->actor), 20, 20);
+
+	// Resize viewport
+	gfloat width;
+	gfloat height;
+
+	clutter_actor_get_size (current_page->actor, &width, &height);
+	g_debug("-----------> %f, %f", width, height);
+	clutter_actor_set_size (viewport, width/2, height/2);
+
+	g_debug("Done");
+}
 
 GtkTreeModel * addressbar_autocomplete_model_new (void) {
 
@@ -27,116 +106,37 @@ GtkTreeModel * addressbar_autocomplete_model_new (void) {
 	gtk_list_store_append (store, &iter);
 	gtk_list_store_set (store, &iter, 0, "about:", -1);
 
-
 	return GTK_TREE_MODEL (store);
 }
 
 
-static gboolean on_addressbar_change (GtkEntry *entry, gpointer user_data) {
-	gchar * text = gtk_entry_get_text(entry);
-
-	g_print("%s\n", text);
-
-	if (strstr(text, g_strdup(".")) || strlen(text) == 0) {
-		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
-	} else {
-		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
-	}
-	return TRUE;
-}
-
-/* Handles Address Bar <enter> */
-static gboolean on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
-
-	GError * error = NULL;
-	gchar  * url = gtk_entry_get_text(entry);
-	gchar  * gopher_url_schema = strdup("gopher://");
-	gchar  * full_url;
-
-	if (!strstr(url, gopher_url_schema)) {
-		full_url = g_strdup_printf("%s%s", gopher_url_schema, url);
-		gtk_entry_set_text(entry, full_url);
-	} else {
-		full_url = url;
-	}
-
-	g_debug("Requested %s\n", full_url);
-
-	/* Handle ASCII */
-	gchar * page = g_gopher_get(full_url);
-	gchar * page_utf8;
-
-	if (g_utf8_validate (page, -1, NULL)) {
-		page_utf8 = page;
-	} else {
-		g_debug("Trying to convert");
-		page_utf8 = g_convert(page, -1, "UTF-8", "ASCII", NULL, NULL, &error);
-		g_debug("Done");
-		g_debug("Printing UTF-8 page:");
-		g_print("%s", page_utf8);
-	}
-
-	if (error) {
-		g_debug(error->message);
-		g_free(error);
-	} else {
-		g_debug("No errors in conversion");
-	}
-
-	g_debug("applying markup");
-	gchar * markup = g_strjoin("\n", "<tt>", page_utf8, "</tt>", NULL);
-	g_print("%s\n", markup);
-	g_debug("done");
-	clutter_text_set_markup(CLUTTER_TEXT(current_page), markup);
-	g_debug("drawing done");
-
-	return TRUE;
-}
-
-
-/*
- *static gboolean on_stage_button_press (ClutterStage *stage, ClutterEvent *event, gpointer data)
- *{
- *  float x = 0;
- *  float y = 0;
- *  clutter_event_get_coords (event, &x, &y);
- *
- *  g_print ("Stage clicked at (%f, %f)\n", x, y);
- *
- *  return TRUE; [> Stop further handling of this event. <]
- *}
- */
-
 int main(int argc, char *argv[]) {
 
-	/*g_url*/
 	gtk_clutter_init (&argc, &argv);
 
-	/* create window */
-	GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	g_signal_connect (window, "hide", G_CALLBACK(gtk_main_quit), NULL);
+	// Using GtkBuilder
+	GError* error = NULL;
+	ui_builder = gtk_builder_new ();
 
-	/* Vbox */
-	GtkWidget *vbox = gtk_vbox_new (FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(window), vbox);
-	gtk_widget_show (vbox);
+	if (!gtk_builder_add_from_file (ui_builder, IFACE, &error))
+	{
+		g_warning ("Couldn't load builder file: %s", error->message);
+		g_error_free (error);
+	} 
 
-	/* Addressbar */
-	GtkWidget *entry = gtk_entry_new();
-	gtk_entry_set_max_length (GTK_ENTRY(entry), 50);
-	gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
-	gtk_box_pack_start (GTK_BOX (vbox), entry, FALSE, FALSE, 0);
-	gtk_widget_show (entry);
+	gtk_builder_connect_signals (ui_builder, NULL);
 
-	g_signal_connect (entry, "changed",
-		       G_CALLBACK(on_addressbar_change), NULL);
-	g_signal_connect (entry, "activate",
-			G_CALLBACK(on_addressbar_activate), NULL);
+	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (ui_builder, "zizelo"));
+	g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
+	GtkWidget *vbox = GTK_WIDGET (gtk_builder_get_object (ui_builder, "vbox"));
+	gtk_widget_set_size_request (GTK_WIDGET(vbox), 600, 400);
+
+	addressbar = GTK_WIDGET (gtk_builder_get_object (ui_builder, "addressbar"));
 
 	/* Addressbar autocomplete */
 	GtkEntryCompletion *autocomplete = gtk_entry_completion_new ();
-	gtk_entry_set_completion (GTK_ENTRY (entry), autocomplete);
+	gtk_entry_set_completion (GTK_ENTRY (addressbar), autocomplete);
 	g_object_unref (autocomplete);
 
 	/* Create a tree model and use it as the completion model */
@@ -145,47 +145,64 @@ int main(int argc, char *argv[]) {
 	g_object_unref (completion_model);
 	gtk_entry_completion_set_text_column (autocomplete, 0); // Use model column 0 as the text column
 
+	/* add table for scrollbars and stage */
+	GtkWidget *table = gtk_table_new (2, 2, FALSE);
+	gtk_box_pack_start(GTK_BOX (vbox), table, TRUE, TRUE, 0);
+	gtk_widget_show (table);
 
 	/* create stage */
 	ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
 	GtkWidget 	*clutter_widget	= gtk_clutter_embed_new();
-	gtk_box_pack_start(GTK_BOX (vbox), clutter_widget, TRUE, TRUE, 0);
+	gtk_table_attach (GTK_TABLE (table), clutter_widget,
+			0, 1,
+			0, 1,
+			GTK_EXPAND | GTK_FILL,
+			GTK_EXPAND | GTK_FILL,
+			0, 0);
 	gtk_widget_show(clutter_widget);
-	gtk_widget_set_size_request(clutter_widget, 600, 500);
+	gtk_widget_set_size_request(clutter_widget, 300, 300);
 
 	/* Get the stage and set its size and color: */
 	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(clutter_widget));
 	clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
 	clutter_actor_show (stage);
 
-	/* Create Clutter Text Actor */
-	ClutterColor	text_color	= { 0x33, 0xff, 0x33, 0xff };
-	ClutterColor	cursor_color	= { 0xff, 0x33, 0x33, 0xff };
-	ClutterText	*text		= clutter_text_new();
+	/* Create a viewport actor to be able to scroll actor. By passing NULL it
+	 * will create new GtkAdjustments. */
+	viewport = gtk_clutter_viewport_new (NULL, NULL, NULL);
+	clutter_container_add_actor (CLUTTER_CONTAINER (stage), viewport);
+	clutter_actor_set_position(CLUTTER_ACTOR(viewport), 20, 20);
+	clutter_actor_set_size (viewport, 600, 400);
 
-	current_page = text;
+	/* Create scrollbars and connect them to viewport: */
+	GtkAdjustment *h_adjustment = NULL;
+	GtkAdjustment *v_adjustment = NULL;
+	gtk_clutter_scrollable_get_adjustments (GTK_CLUTTER_SCROLLABLE (viewport), &h_adjustment, &v_adjustment);
 
-	clutter_text_set_color (CLUTTER_TEXT(text), &text_color);
-	clutter_text_set_cursor_color (CLUTTER_TEXT(text), &cursor_color);
-	clutter_text_set_selectable (CLUTTER_TEXT(text), TRUE);
-	clutter_actor_set_reactive (CLUTTER_ACTOR(text), TRUE);
-	clutter_text_set_markup(CLUTTER_TEXT(text), strdup("<tt>hello world!</tt>"));
-	clutter_stage_set_key_focus (CLUTTER_STAGE(stage), CLUTTER_ACTOR(text));
-	clutter_actor_set_position(CLUTTER_ACTOR(text), 10, 10);
-	clutter_container_add (CLUTTER_CONTAINER (stage), CLUTTER_ACTOR(text), NULL);
+	GtkWidget *scrollbar_v = gtk_vscrollbar_new (v_adjustment);
 
-	/* Connect a signal handler to handle mouse clicks and key presses on the stage: */ 
-	/*g_signal_connect (stage, "button-press-event",*/
-	/*                G_CALLBACK (on_stage_color_change), NULL);*/
-	/*g_signal_connect (stage, "button-press-event",*/
-	/*                G_CALLBACK (on_stage_button_press), NULL);*/
-	/*g_signal_connect (stage, "button-press-event",*/
-	/*                G_CALLBACK (on_stage_click), NULL);*/
+	gtk_table_attach (GTK_TABLE (table), scrollbar_v,
+			1, 2,
+			0, 1,
+			0, GTK_EXPAND | GTK_FILL,
+			0, 0);
 
-	gtk_widget_show(window);
+	gtk_widget_show (scrollbar_v);
 
-	/* Start the main loop, so we can respond to events: */
+	GtkWidget *scrollbar_h = gtk_hscrollbar_new (h_adjustment);
+	gtk_table_attach (GTK_TABLE (table), scrollbar_h,
+			0, 1,
+			1, 2,
+			GTK_EXPAND | GTK_FILL, 0,
+			0, 0);
+
+	gtk_widget_show (scrollbar_h);
+
+
+
+	gtk_widget_show_all(window);
+
+	zz_open(g_strdup("gopher://antono.info:70/"), TRUE);
 	gtk_main();
-
 	return EXIT_SUCCESS;
 }

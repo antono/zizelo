@@ -5,11 +5,10 @@ NAME    = zizelo
 VERSION = 0.1
 
 CC      = gcc
-CFLAGS  = -ggdb -O2 -Wall -I.
-LIBS    = gio-2.0 gtk+-2.0 clutter-1.0 clutter-gtk-0.10
-OBJ 	= gophernet.o guri.o
-HEADERS = gophernet.h guri.h
-
+CFLAGS  = -ggdb -O0 -Wall -Wl,--export-dynamic -I.
+LIBS    = gio-2.0 gtk+-2.0 clutter-1.0 clutter-gtk-0.10 gmodule-export-2.0
+OBJ 	= page.o gophernet.o guri.o
+HEADERS = page.h gophernet.h guri.h
 
 #
 # Building
@@ -17,17 +16,21 @@ HEADERS = gophernet.h guri.h
 all: $(OBJ)
 	$(CC) $(CFLAGS) -g $(NAME).c -o $(NAME) $(OBJ) `pkg-config $(LIBS) --cflags --libs`
 
-run: all
-	@./zizelo
-
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) `pkg-config $(LIBS) --cflags --libs`
 
-pg:
-	$(CC) $(CFLAGS) -g page.c -o page $(OBJ) `pkg-config $(LIBS) --cflags --libs`
-	@./page
+run: all
+	@./$(NAME)
 
 .PHONY: clean
+.PHONY: tags
+
+
+sc: $(OBJ)
+	$(CC) $(CFLAGS) -g scroll.c -o scroll `pkg-config $(LIBS) --cflags --libs`
+
+tags:
+	@ctags -R .
 
 clean:
-	rm -rf *.o *.swp core $(NAME)
+	rm -rf $(NAME) $(OBJ) *.swp core
