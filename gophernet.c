@@ -88,3 +88,13 @@ GString * g_gopher_get (gchar *url) {
 
 	return page;
 }
+
+
+void g_gopher_get_async () {
+}
+
+gboolean g_gopher_get_finish () {
+}
+
+GString * g_gopher_get_function () {
+}

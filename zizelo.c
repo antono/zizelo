@@ -9,25 +9,24 @@
 #include "page.h"
 #include "gophernet.h"
 
-#define IFACE "data/zizelo.glade"
+#define BUILDER "data/zizelo.glade"
 
-GtkBuilder	*ui_builder;
+GtkBuilder	*builder;
 ClutterActor 	*stage;
 ClutterActor 	*viewport;
 ZzPage 		*current_page = NULL;
-
 GtkWidget 	*addressbar;
 
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer     user_data)
 {
-	GtkWidget *about_dialog = GTK_WIDGET (gtk_builder_get_object (ui_builder, "zizelo_about"));
+	GtkWidget *about_dialog = GTK_WIDGET (gtk_builder_get_object (builder, "zizelo_about"));
 	gtk_dialog_run (GTK_DIALOG (about_dialog));
 	gtk_widget_hide (about_dialog);
 }
 
 G_MODULE_EXPORT void
-on_addressbar_activate_cb (GtkEntry *entry, gpointer user_data) {
+on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 
 	gchar * url = gtk_entry_get_text(entry);
 	gchar * gopher_url_schema = strdup("gopher://");
@@ -46,7 +45,7 @@ on_addressbar_activate_cb (GtkEntry *entry, gpointer user_data) {
 }
 
 G_MODULE_EXPORT void
-on_addressbar_changed_cb (GtkEntry *entry, gpointer user_data) {
+on_addressbar_changed (GtkEntry *entry, gpointer user_data) {
 
 	gchar * text = gtk_entry_get_text(entry);
 
@@ -58,6 +57,33 @@ on_addressbar_changed_cb (GtkEntry *entry, gpointer user_data) {
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
 	}
 	return TRUE;
+}
+
+static gboolean
+on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_data)
+{
+	/* determine the direction the mouse was scrolled */
+	ClutterScrollDirection direction;
+	direction = clutter_event_get_scroll_direction (event);
+
+	/* replace these stubs with real code to move the actor etc. */
+	switch (direction)
+	{
+		case CLUTTER_SCROLL_UP:
+			g_debug ("Scrolled up");
+			break;
+		case CLUTTER_SCROLL_DOWN:
+			g_debug ("Scrolled down");
+			break;
+		case CLUTTER_SCROLL_RIGHT:
+			g_debug ("Scrolled right");
+			break;
+		case CLUTTER_SCROLL_LEFT:
+			g_debug ("Scrolled left");
+			break;
+	}
+
+	return TRUE; /* event has been handled */
 }
 
 void zz_open(gchar *uri, gboolean menu) {
@@ -81,8 +107,10 @@ void zz_open(gchar *uri, gboolean menu) {
 	gfloat height;
 
 	clutter_actor_get_size (current_page->actor, &width, &height);
+
 	g_debug("-----------> %f, %f", width, height);
-	clutter_actor_set_size (viewport, width/2, height/2);
+
+	clutter_actor_set_size (viewport, width / 2, height / 2);
 
 	g_debug("Done");
 }
@@ -109,31 +137,8 @@ GtkTreeModel * addressbar_autocomplete_model_new (void) {
 	return GTK_TREE_MODEL (store);
 }
 
-
-int main(int argc, char *argv[]) {
-
-	gtk_clutter_init (&argc, &argv);
-
-	// Using GtkBuilder
-	GError* error = NULL;
-	ui_builder = gtk_builder_new ();
-
-	if (!gtk_builder_add_from_file (ui_builder, IFACE, &error))
-	{
-		g_warning ("Couldn't load builder file: %s", error->message);
-		g_error_free (error);
-	} 
-
-	gtk_builder_connect_signals (ui_builder, NULL);
-
-	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (ui_builder, "zizelo"));
-	g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
-
-	GtkWidget *vbox = GTK_WIDGET (gtk_builder_get_object (ui_builder, "vbox"));
-	gtk_widget_set_size_request (GTK_WIDGET(vbox), 600, 400);
-
-	addressbar = GTK_WIDGET (gtk_builder_get_object (ui_builder, "addressbar"));
-
+void
+zz_bind_autocomplete (GtkWidget *addressbar) {
 	/* Addressbar autocomplete */
 	GtkEntryCompletion *autocomplete = gtk_entry_completion_new ();
 	gtk_entry_set_completion (GTK_ENTRY (addressbar), autocomplete);
@@ -144,10 +149,37 @@ int main(int argc, char *argv[]) {
 	gtk_entry_completion_set_model (autocomplete, completion_model);
 	g_object_unref (completion_model);
 	gtk_entry_completion_set_text_column (autocomplete, 0); // Use model column 0 as the text column
+}
+
+int main(int argc, char *argv[]) {
+
+	gtk_clutter_init (&argc, &argv);
+
+	// Using GtkBuilder
+	GError* error = NULL;
+	builder = gtk_builder_new ();
+
+	if (!gtk_builder_add_from_file (builder, BUILDER, &error))
+	{
+		g_warning ("Couldn't load builder file: %s", error->message);
+		g_error_free (error);
+	} 
+
+	gtk_builder_connect_signals (builder, NULL);
+
+	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "zizelo"));
+	g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
+
+	GtkWidget *vbox = GTK_WIDGET (gtk_builder_get_object (builder, "vbox"));
+	gtk_widget_set_size_request (GTK_WIDGET (vbox), 600, 400);
+
+	addressbar = GTK_WIDGET (gtk_builder_get_object (builder, "addressbar"));
+
+	zz_bind_autocomplete (GTK_WIDGET (addressbar));
 
 	/* add table for scrollbars and stage */
-	GtkWidget *table = gtk_table_new (2, 2, FALSE);
-	gtk_box_pack_start(GTK_BOX (vbox), table, TRUE, TRUE, 0);
+	GtkWidget *table = GTK_WIDGET (gtk_builder_get_object (builder, "table"));
+	gtk_box_pack_start (GTK_BOX (vbox), table, TRUE, TRUE, 0);
 	gtk_widget_show (table);
 
 	/* create stage */
@@ -159,13 +191,17 @@ int main(int argc, char *argv[]) {
 			GTK_EXPAND | GTK_FILL,
 			GTK_EXPAND | GTK_FILL,
 			0, 0);
-	gtk_widget_show(clutter_widget);
-	gtk_widget_set_size_request(clutter_widget, 300, 300);
+	gtk_widget_show (clutter_widget);
+	gtk_widget_set_size_request (clutter_widget, 300, 300);
 
 	/* Get the stage and set its size and color: */
-	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(clutter_widget));
-	clutter_stage_set_color(CLUTTER_STAGE(stage), &stage_color);
+	stage = gtk_clutter_embed_get_stage (GTK_CLUTTER_EMBED (clutter_widget));
+	clutter_stage_set_color (CLUTTER_STAGE(stage), &stage_color);
+	clutter_actor_set_reactive (stage, TRUE);
 	clutter_actor_show (stage);
+
+	g_signal_connect (stage, "scroll-event", G_CALLBACK (on_stage_scroll_event), NULL);
+
 
 	/* Create a viewport actor to be able to scroll actor. By passing NULL it
 	 * will create new GtkAdjustments. */
