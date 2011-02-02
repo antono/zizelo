@@ -5,11 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "zizelo.h"
 #include "page.h"
 #include "gophernet.h"
-
-#define BUILDER "data/zizelo.ui"
+#include "zizelo.h"
 
 GtkBuilder		*builder;
 ClutterActor		*stage;
@@ -17,8 +15,10 @@ ClutterActor		*viewport;
 ZzPage			*current_page = NULL;
 GtkWidget		*addressbar;
 
+#define BUILDER "data/zizelo.ui"
+
 G_MODULE_EXPORT void
-on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer     user_data)
+on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
 {
 	GtkWidget *about_dialog = GTK_WIDGET (gtk_builder_get_object (builder, "zizelo_about"));
 	gtk_dialog_run (GTK_DIALOG (about_dialog));
@@ -87,16 +87,30 @@ on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_d
 }
 
 void zz_open(gchar *uri, gboolean menu) {
-	//g_debug("Requesting %s\n", uri);
-	
-	GString * page = g_gopher_get(uri);
+	g_gopher_get_async(NULL, uri, zz_open_handle_result, &menu);
+}
+
+void zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer *user_data)
+{
+	GError  * error;
+	GString * string;
+	ZzPage  * page;
+
+	string = g_gopher_get_finish (source, result, &error);
+	page = zz_page_new(string, TRUE);
+
+	/*page->source_uri = uri;*/
+	zz_display_page(page);
+}
+
+void zz_display_page(ZzPage *page) {
 
 	if (current_page) clutter_container_remove_actor(CLUTTER_CONTAINER(viewport), current_page->actor);
 
-	current_page = zz_page_new(page, menu);
+	current_page = page;
 
 	// Change addressbar content
-	gtk_entry_set_text(GTK_ENTRY(addressbar), uri);
+	/*gtk_entry_set_text(GTK_ENTRY(addressbar), current_page->source_uri);*/
 
 	// Add page actor to viewport
 	clutter_container_add(CLUTTER_CONTAINER(viewport), current_page->actor, NULL);

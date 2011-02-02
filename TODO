@@ -1,6 +1,0 @@
-Parse URIs
-Use String for returned page
-Use GtkApplication
-Fix autocomplete
-zizelo
-move guri to glib?

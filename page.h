@@ -1,6 +1,7 @@
 typedef struct {
 	ClutterActor *actor;
 	ClutterLayoutManager *layout;
+	gchar   *source_uri;
 	GString *raw_page;
 	GString *raw_page_clean;
 	GArray  *parts;

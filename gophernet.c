@@ -33,7 +33,7 @@ GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
 	}
 }
 
-GString * g_gopher_get (gchar *url) {
+GString * g_gopher_get (gchar *url, GSimpleAsyncResult *result) {
 
 	GURI    * uri 	= g_uri_new (url);
 	GError  * error = NULL;
@@ -98,10 +98,22 @@ GString * g_gopher_get (gchar *url) {
 	/*        g_print("%s", page_utf8);*/
 	/*}*/
 
+
 	g_free(uri);
+
 	/*g_debug("What we got:");*/
 	/*g_print("%s\n", page->str);*/
 	/*g_debug("Done!");*/
+
+
+	if (result && page != NULL)
+	{
+		g_simple_async_result_set_op_res_gpointer (result, page, g_string_free);
+		g_debug("here");
+		g_simple_async_result_complete (result);
+		g_object_unref (result);
+		return;
+	}
 
 	return page;
 }
@@ -111,7 +123,7 @@ GString * g_gopher_get (gchar *url) {
 //
 
 void
-g_gopher_get_async (GAsyncReadyCallback callback, gpointer user_data)
+g_gopher_get_async (GObject *self, gchar *url, GAsyncReadyCallback callback, gpointer user_data)
 {
 	GString *string;
 	GSimpleAsyncResult *result;
@@ -121,9 +133,18 @@ g_gopher_get_async (GAsyncReadyCallback callback, gpointer user_data)
 			user_data,
 			g_gopher_get_async);
 
+	g_gopher_get(url, result);
 }
 
-GString *g_gopher_get_finish (GAsyncResult *result, GError **error)
-{
 
+GString *
+g_gopher_get_finish (GObject *self, GAsyncResult *result, GError **error)
+{
+	GSimpleAsyncResult *simple;
+	GString *string;
+
+	simple = (GSimpleAsyncResult *) result;
+	string = g_simple_async_result_get_op_res_gpointer (simple);
+
+	return string;
 }
