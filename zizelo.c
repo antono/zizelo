@@ -14,8 +14,13 @@ ClutterActor		*stage;
 ClutterActor		*viewport;
 ZzPage			*current_page = NULL;
 GtkWidget		*addressbar;
+gint			scroll_factor = 30;
 
 #define BUILDER "data/zizelo.ui"
+
+#define STAGE_HEIGHT 300
+#define STAGE_WIDTH STAGE_HEIGHT
+#define SCROLL_AMOUNT STAGE_HEIGHT * 0.125
 
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
@@ -60,8 +65,26 @@ on_addressbar_changed (GtkEntry *entry, gpointer user_data) {
 }
 
 static gboolean
-on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_data)
+on_viewport_scroll_event (ClutterActor *_self, ClutterEvent *event, gpointer _page)
 {
+
+	ClutterActor *view = viewport;
+	ClutterActor *page = current_page->actor;
+
+	if (!page) g_debug("No scrollable :(");
+	if (!view) g_debug("No user data :(");
+
+	gfloat scrollable_height = clutter_actor_get_height (page);
+	gfloat viewport_height   = clutter_actor_get_height (view);
+
+
+	/* no need to scroll if the scrollable is shorter than the viewport */
+	if (scrollable_height < viewport_height)
+		return TRUE;
+
+	gfloat y = clutter_actor_get_y (page);
+
+
 	/* determine the direction the mouse was scrolled */
 	ClutterScrollDirection direction;
 	direction = clutter_event_get_scroll_direction (event);
@@ -71,9 +94,11 @@ on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_d
 	{
 		case CLUTTER_SCROLL_UP:
 			g_debug ("Scrolled up");
+			y += scroll_factor;
 			break;
 		case CLUTTER_SCROLL_DOWN:
 			g_debug ("Scrolled down");
+			y -= scroll_factor;
 			break;
 		case CLUTTER_SCROLL_RIGHT:
 			g_debug ("Scrolled right");
@@ -83,23 +108,34 @@ on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_d
 			break;
 	}
 
+	y = CLAMP (y, viewport_height - scrollable_height, 0.0);
+
+	scroll_factor = viewport_height * 0.125;
+
+	clutter_actor_animate (page,
+			CLUTTER_EASE_OUT_CUBIC,
+			300,
+			"y", y,
+			NULL);
+
 	return TRUE; /* event has been handled */
 }
 
-void zz_open(gchar *uri, gboolean is_menu) {
+void
+zz_open(gchar *uri, gboolean is_menu)
+{
 	ZzOpenData *user_data = g_new(ZzOpenData, 1);
 
 	user_data->is_menu = is_menu;
 	user_data->uri = uri;
 
-	/*g_free(uri);*/
-
-
-	g_debug("-----------> user data %s", user_data->uri);
 	g_gopher_get_async(NULL, uri, zz_open_handle_result, user_data);
+
+	g_free(uri);
 }
 
-void zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer user_data)
+void
+zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer user_data)
 {
 
 	ZzOpenData *data = user_data;
@@ -116,7 +152,8 @@ void zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointe
 	zz_display_page(page);
 }
 
-void zz_display_page(ZzPage *page) {
+void
+zz_display_page (ZzPage *page) {
 
 	if (current_page) clutter_container_remove_actor(CLUTTER_CONTAINER(viewport), current_page->actor);
 
@@ -133,16 +170,38 @@ void zz_display_page(ZzPage *page) {
 	gfloat width;
 	gfloat height;
 
-	clutter_actor_get_size (current_page->actor, &width, &height);
+	clutter_actor_get_size (stage, &width, &height);
 
-	g_debug("-----------> %f, %f", width, height);
+	/*g_debug("-----------> %f, %f", width, height);*/
 
-	clutter_actor_set_size (viewport, width / 2, height / 2);
+	/*clutter_actor_set_size (viewport, width / 2, height / 2);*/
+
+	clutter_actor_set_size (viewport, width, height);
 
 	g_debug("Done");
 }
 
-GtkTreeModel * addressbar_autocomplete_model_new (void) {
+
+void on_stage_allocation_changed (ClutterActor           *actor,
+		const ClutterActorBox  *allocation,
+		ClutterAllocationFlags  flags,
+		gpointer                user_data)
+{
+	gfloat stage_width  = clutter_actor_box_get_width  (allocation);
+	gfloat stage_height = clutter_actor_box_get_height (allocation);
+
+	scroll_factor = stage_height * 0.125;
+	clutter_actor_set_size (viewport, stage_width, stage_height);
+
+	g_print ("The bounding box is now: (%.2f, %.2f) (%.2f x %.2f)\n",
+			clutter_actor_box_get_x (allocation),
+			clutter_actor_box_get_y (allocation),
+			clutter_actor_box_get_width (allocation),
+			clutter_actor_box_get_height (allocation));
+}
+
+GtkTreeModel *
+addressbar_autocomplete_model_new (void) {
 
 	GtkListStore *store;
 	GtkTreeIter iter;
@@ -178,7 +237,8 @@ zz_bind_autocomplete (GtkWidget *addressbar) {
 	gtk_entry_completion_set_text_column (autocomplete, 0); // Use model column 0 as the text column
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
 
 	gtk_clutter_init (&argc, &argv);
 
@@ -197,62 +257,36 @@ int main(int argc, char *argv[]) {
 	GtkWidget *window = GTK_WIDGET (gtk_builder_get_object (builder, "zizelo"));
 	g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
-	GtkWidget *vbox = GTK_WIDGET (gtk_builder_get_object (builder, "vbox"));
-	gtk_widget_set_size_request (GTK_WIDGET (vbox), 600, 400);
-
 	addressbar = GTK_WIDGET (gtk_builder_get_object (builder, "addressbar"));
 
 	zz_bind_autocomplete (GTK_WIDGET (addressbar));
 
-	/* add table for scrollbars and stage */
-	GtkWidget *table = GTK_WIDGET (gtk_builder_get_object (builder, "table"));
-	gtk_box_pack_start (GTK_BOX (vbox), table, TRUE, TRUE, 0);
-	gtk_widget_show (table);
+	/* create clutter widget */
+	ClutterColor stage_color = { 0x00, 0x00, 0x00, 0xff };
 
-	/* create stage */
-	ClutterColor 	stage_color 	= { 0x00, 0x00, 0x00, 0xff }; /* Black */
-	GtkWidget 	*clutter_widget	= gtk_clutter_embed_new();
-	gtk_table_attach (GTK_TABLE (table), clutter_widget,
-			0, 1,
-			0, 1,
-			GTK_EXPAND | GTK_FILL,
-			GTK_EXPAND | GTK_FILL,
-			0, 0);
+	GtkWidget *clutter_widget = gtk_clutter_embed_new();
+
+	GtkWidget *vbox = GTK_WIDGET (gtk_builder_get_object (builder, "vbox"));
+	gtk_box_pack_start (GTK_BOX (vbox), clutter_widget, TRUE, TRUE, 0);
+	gtk_box_reorder_child (GTK_BOX (vbox), clutter_widget, 2);
 
 	/* Get the stage and set its size and color: */
 	stage = gtk_clutter_embed_get_stage (GTK_CLUTTER_EMBED (clutter_widget));
 	clutter_stage_set_color (CLUTTER_STAGE(stage), &stage_color);
-	clutter_actor_set_reactive (stage, TRUE);
+	g_signal_connect (stage, "allocation-changed", G_CALLBACK (on_stage_allocation_changed), NULL);
 
-	g_signal_connect (stage, "scroll-event", G_CALLBACK (on_stage_scroll_event), NULL);
+	/* Create a viewport actor */
+	viewport = clutter_group_new ();
 
-	/* Create a viewport actor to be able to scroll actor. By passing NULL it
-	 * will create new GtkAdjustments. */
-	viewport = gtk_clutter_viewport_new (NULL, NULL, NULL);
+	clutter_actor_set_reactive (viewport, TRUE);
+	clutter_actor_add_constraint (viewport, clutter_align_constraint_new (stage, CLUTTER_BIND_Y, 0.5));
+	clutter_actor_set_clip_to_allocation (viewport, TRUE);
 	clutter_container_add_actor (CLUTTER_CONTAINER (stage), viewport);
-	clutter_actor_set_position(CLUTTER_ACTOR(viewport), 20, 20);
 
-	/* Create scrollbars and connect them to viewport: */
-	GtkAdjustment *h_adjustment = NULL;
-	GtkAdjustment *v_adjustment = NULL;
-	gtk_clutter_scrollable_get_adjustments (GTK_CLUTTER_SCROLLABLE (viewport), &h_adjustment, &v_adjustment);
-
-	GtkWidget *scrollbar_v = gtk_vscrollbar_new (v_adjustment);
-
-	gtk_table_attach (GTK_TABLE (table), scrollbar_v,
-			1, 2,
-			0, 1,
-			0, GTK_EXPAND | GTK_FILL,
-			0, 0);
-
-	GtkWidget *scrollbar_h = gtk_hscrollbar_new (h_adjustment);
-	gtk_table_attach (GTK_TABLE (table), scrollbar_h,
-			0, 1,
-			1, 2,
-			GTK_EXPAND | GTK_FILL, 0,
-			0, 0);
+	g_signal_connect (viewport, "scroll-event", G_CALLBACK (on_viewport_scroll_event), current_page);
 
 	gtk_widget_show_all(window);
+
 
 	zz_open(g_strdup("gopher://antono.info:70/"), TRUE);
 
