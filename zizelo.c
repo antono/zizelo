@@ -9,13 +9,13 @@
 #include "page.h"
 #include "gophernet.h"
 
-#define BUILDER "data/zizelo.glade"
+#define BUILDER "data/zizelo.ui"
 
-GtkBuilder	*builder;
-ClutterActor 	*stage;
-ClutterActor 	*viewport;
-ZzPage 		*current_page = NULL;
-GtkWidget 	*addressbar;
+GtkBuilder		*builder;
+ClutterActor		*stage;
+ClutterActor		*viewport;
+ZzPage			*current_page = NULL;
+GtkWidget		*addressbar;
 
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer     user_data)
@@ -28,9 +28,9 @@ on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer     user_data)
 G_MODULE_EXPORT void
 on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 
+	gchar * full_url;
 	gchar * url = gtk_entry_get_text(entry);
 	gchar * gopher_url_schema = strdup("gopher://");
-	gchar * full_url;
 
 	if (!strstr(url, gopher_url_schema)) {
 		full_url = g_strdup_printf("%s%s", gopher_url_schema, url);
@@ -191,24 +191,19 @@ int main(int argc, char *argv[]) {
 			GTK_EXPAND | GTK_FILL,
 			GTK_EXPAND | GTK_FILL,
 			0, 0);
-	gtk_widget_show (clutter_widget);
-	gtk_widget_set_size_request (clutter_widget, 300, 300);
 
 	/* Get the stage and set its size and color: */
 	stage = gtk_clutter_embed_get_stage (GTK_CLUTTER_EMBED (clutter_widget));
 	clutter_stage_set_color (CLUTTER_STAGE(stage), &stage_color);
 	clutter_actor_set_reactive (stage, TRUE);
-	clutter_actor_show (stage);
 
 	g_signal_connect (stage, "scroll-event", G_CALLBACK (on_stage_scroll_event), NULL);
-
 
 	/* Create a viewport actor to be able to scroll actor. By passing NULL it
 	 * will create new GtkAdjustments. */
 	viewport = gtk_clutter_viewport_new (NULL, NULL, NULL);
 	clutter_container_add_actor (CLUTTER_CONTAINER (stage), viewport);
 	clutter_actor_set_position(CLUTTER_ACTOR(viewport), 20, 20);
-	clutter_actor_set_size (viewport, 600, 400);
 
 	/* Create scrollbars and connect them to viewport: */
 	GtkAdjustment *h_adjustment = NULL;
@@ -223,8 +218,6 @@ int main(int argc, char *argv[]) {
 			0, GTK_EXPAND | GTK_FILL,
 			0, 0);
 
-	gtk_widget_show (scrollbar_v);
-
 	GtkWidget *scrollbar_h = gtk_hscrollbar_new (h_adjustment);
 	gtk_table_attach (GTK_TABLE (table), scrollbar_h,
 			0, 1,
@@ -232,13 +225,10 @@ int main(int argc, char *argv[]) {
 			GTK_EXPAND | GTK_FILL, 0,
 			0, 0);
 
-	gtk_widget_show (scrollbar_h);
-
-
-
 	gtk_widget_show_all(window);
 
 	zz_open(g_strdup("gopher://antono.info:70/"), TRUE);
+
 	gtk_main();
 	return EXIT_SUCCESS;
 }
