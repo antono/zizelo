@@ -18,10 +18,6 @@ gint			scroll_factor = 30;
 
 #define BUILDER "data/zizelo.ui"
 
-#define STAGE_HEIGHT 300
-#define STAGE_WIDTH STAGE_HEIGHT
-#define SCROLL_AMOUNT STAGE_HEIGHT * 0.125
-
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -31,8 +27,8 @@ on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
 }
 
 G_MODULE_EXPORT void
-on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
-
+on_addressbar_activate (GtkEntry *entry, gpointer user_data)
+{
 	gchar * full_url;
 	gchar * url = gtk_entry_get_text(entry);
 	gchar * gopher_url_schema = strdup("gopher://");
@@ -45,23 +41,18 @@ on_addressbar_activate (GtkEntry *entry, gpointer user_data) {
 
 	gtk_entry_set_text(entry, full_url);
 	zz_open(full_url, TRUE);
-
-	return TRUE;
 }
 
 G_MODULE_EXPORT void
-on_addressbar_changed (GtkEntry *entry, gpointer user_data) {
-
+on_addressbar_changed (GtkEntry *entry, gpointer user_data)
+{
 	gchar * text = gtk_entry_get_text(entry);
-
-	g_print("%s\n", text);
 
 	if (strstr(text, g_strdup(".")) || strlen(text) == 0) {
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_OPEN);
 	} else {
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry), GTK_ENTRY_ICON_PRIMARY, GTK_STOCK_FIND);
 	}
-	return TRUE;
 }
 
 static gboolean
@@ -93,11 +84,9 @@ on_viewport_scroll_event (ClutterActor *_self, ClutterEvent *event, gpointer _pa
 	switch (direction)
 	{
 		case CLUTTER_SCROLL_UP:
-			g_debug ("Scrolled up");
 			y += scroll_factor;
 			break;
 		case CLUTTER_SCROLL_DOWN:
-			g_debug ("Scrolled down");
 			y -= scroll_factor;
 			break;
 		case CLUTTER_SCROLL_RIGHT:
@@ -110,7 +99,7 @@ on_viewport_scroll_event (ClutterActor *_self, ClutterEvent *event, gpointer _pa
 
 	y = CLAMP (y, viewport_height - scrollable_height, 0.0);
 
-	scroll_factor = viewport_height * 0.125;
+	scroll_factor = viewport_height * 0.225;
 
 	clutter_actor_animate (page,
 			CLUTTER_EASE_OUT_CUBIC,
@@ -137,25 +126,23 @@ zz_open(gchar *uri, gboolean is_menu)
 void
 zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer user_data)
 {
-
 	ZzOpenData *data = user_data;
-
-	g_debug("-----------> user data %s", data->uri);
-
+	ZzPage  * page;
 	GError  * error;
 	GString * string;
-	ZzPage  * page;
 
 	string = g_gopher_get_finish (source, result, &error);
 	page = zz_page_new(string, data->is_menu);
 	page->open_data = data;
+
 	zz_display_page(page);
 }
 
 void
-zz_display_page (ZzPage *page) {
-
-	if (current_page) clutter_container_remove_actor(CLUTTER_CONTAINER(viewport), current_page->actor);
+zz_display_page (ZzPage *page)
+{
+	if (current_page)
+		clutter_container_remove_actor(CLUTTER_CONTAINER(viewport), current_page->actor);
 
 	current_page = page;
 
@@ -171,18 +158,11 @@ zz_display_page (ZzPage *page) {
 	gfloat height;
 
 	clutter_actor_get_size (stage, &width, &height);
-
-	/*g_debug("-----------> %f, %f", width, height);*/
-
-	/*clutter_actor_set_size (viewport, width / 2, height / 2);*/
-
 	clutter_actor_set_size (viewport, width, height);
-
-	g_debug("Done");
 }
 
 
-void on_stage_allocation_changed (ClutterActor           *actor,
+void on_stage_allocation_changed (ClutterActor *actor,
 		const ClutterActorBox  *allocation,
 		ClutterAllocationFlags  flags,
 		gpointer                user_data)
@@ -192,12 +172,6 @@ void on_stage_allocation_changed (ClutterActor           *actor,
 
 	scroll_factor = stage_height * 0.125;
 	clutter_actor_set_size (viewport, stage_width, stage_height);
-
-	g_print ("The bounding box is now: (%.2f, %.2f) (%.2f x %.2f)\n",
-			clutter_actor_box_get_x (allocation),
-			clutter_actor_box_get_y (allocation),
-			clutter_actor_box_get_width (allocation),
-			clutter_actor_box_get_height (allocation));
 }
 
 GtkTreeModel *
