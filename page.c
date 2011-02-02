@@ -4,15 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "zizelo.h"
 #include "gophernet.h"
 #include "guri.h"
 #include "page.h"
+#include "zizelo.h"
 
-ZzPage * zz_page_new (GString *raw_page, gboolean is_menu) {
-	ZzPage *page;
-
-	page = g_new(ZzPage, 1);
+ZzPage *
+zz_page_new (GString *raw_page, gboolean is_menu)
+{
+	ZzPage *page = g_new(ZzPage, 1);
 
 	page->layout = clutter_box_layout_new ();
 	clutter_box_layout_set_vertical (CLUTTER_BOX_LAYOUT(page->layout), TRUE);
@@ -31,7 +31,9 @@ ZzPage * zz_page_new (GString *raw_page, gboolean is_menu) {
 	return page;
 }
 
-ZzPage * zz_page_parse (ZzPage *page) {
+ZzPage *
+zz_page_parse (ZzPage *page)
+{
 	gchar **lines = g_strsplit(page->raw_page->str, "\r\n", -1);
 	gchar *line;
 	gchar type;
@@ -84,7 +86,9 @@ ZzPage * zz_page_parse (ZzPage *page) {
 	return page;
 }
 
-ZzLink * zz_link_new(gchar *title, gchar *uri, gchar type) {
+ZzLink *
+zz_link_new(gchar *title, gchar *uri, gchar type)
+{
 
 	ZzLink *self = g_new(ZzLink, 1);
 
@@ -106,7 +110,9 @@ ZzLink * zz_link_new(gchar *title, gchar *uri, gchar type) {
 	return self;
 }
 
-void zz_page_add_link (ZzPage *page, gchar *desc, gchar *uri, gchar type) {
+void
+zz_page_add_link (ZzPage *page, gchar *desc, gchar *uri, gchar type) {
+
 	ZzLink *link = zz_link_new(desc, uri, type);
 	g_array_append_val(page->parts, link);
 	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(page->layout), link->actor,
@@ -118,7 +124,9 @@ void zz_page_add_link (ZzPage *page, gchar *desc, gchar *uri, gchar type) {
 }
 
 
-ZzText * zz_text_new(gchar * raw) {
+ZzText *
+zz_text_new(gchar * raw) {
+
 	ZzText *self = g_new(ZzText, 1);
 
 	ClutterColor text_color = { 0x33, 0xff, 0x33, 0xff };

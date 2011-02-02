@@ -86,20 +86,33 @@ on_stage_scroll_event (ClutterActor *actor, ClutterEvent *event, gpointer user_d
 	return TRUE; /* event has been handled */
 }
 
-void zz_open(gchar *uri, gboolean menu) {
-	g_gopher_get_async(NULL, uri, zz_open_handle_result, &menu);
+void zz_open(gchar *uri, gboolean is_menu) {
+	ZzOpenData *user_data = g_new(ZzOpenData, 1);
+
+	user_data->is_menu = is_menu;
+	user_data->uri = uri;
+
+	/*g_free(uri);*/
+
+
+	g_debug("-----------> user data %s", user_data->uri);
+	g_gopher_get_async(NULL, uri, zz_open_handle_result, user_data);
 }
 
-void zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer *user_data)
+void zz_open_handle_result (GObject *source, GSimpleAsyncResult *result, gpointer user_data)
 {
+
+	ZzOpenData *data = user_data;
+
+	g_debug("-----------> user data %s", data->uri);
+
 	GError  * error;
 	GString * string;
 	ZzPage  * page;
 
 	string = g_gopher_get_finish (source, result, &error);
-	page = zz_page_new(string, TRUE);
-
-	/*page->source_uri = uri;*/
+	page = zz_page_new(string, data->is_menu);
+	page->open_data = data;
 	zz_display_page(page);
 }
 
@@ -110,7 +123,7 @@ void zz_display_page(ZzPage *page) {
 	current_page = page;
 
 	// Change addressbar content
-	/*gtk_entry_set_text(GTK_ENTRY(addressbar), current_page->source_uri);*/
+	gtk_entry_set_text(GTK_ENTRY(addressbar), page->open_data->uri);
 
 	// Add page actor to viewport
 	clutter_container_add(CLUTTER_CONTAINER(viewport), current_page->actor, NULL);

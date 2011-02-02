@@ -1,11 +1,18 @@
 typedef struct {
+	gchar *uri;
+	gchar *type;
+	gboolean is_menu;
+} ZzOpenData;
+
+typedef struct {
 	ClutterActor *actor;
 	ClutterLayoutManager *layout;
-	gchar   *source_uri;
+	ZzOpenData *open_data;
 	GString *raw_page;
 	GString *raw_page_clean;
-	GArray  *parts;
+	GArray *parts;
 } ZzPage;
+
 
 typedef struct {
 	ClutterActor *actor;
