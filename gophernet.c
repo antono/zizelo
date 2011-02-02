@@ -6,15 +6,24 @@
 #include "guri.h"
 
 GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
-	GSocket            * socket;
-	GSocketClient      * client;
-	GSocketConnection  * connection;
-	GSocketConnectable * addr;
 
-	addr       = g_network_address_new (host, port);
-	client     = g_socket_client_new ();
-	connection = g_socket_client_connect (client, addr, NULL, &error);
-	socket     = g_socket_connection_get_socket (connection);
+	GSocket			* socket;
+	GSocketClient		* client;
+	GSocketConnection	* connection;
+	GSocketConnectable	* addr;
+	GTimer			* timer;
+
+	timer = g_timer_new();
+	g_timer_start(timer);
+
+	addr		= g_network_address_new (host, port);
+	client		= g_socket_client_new ();
+	connection	= g_socket_client_connect (client, addr, NULL, &error);
+	socket		= g_socket_connection_get_socket (connection);
+
+	g_timer_stop(timer);
+	g_debug ("Connection took %f", g_timer_elapsed(timer, NULL));
+	g_timer_destroy(timer);
 
 	if (socket) {
 		return socket;
@@ -26,9 +35,10 @@ GSocket * g_gopher_socket_connect(gchar *host, gint port, GError *error) {
 
 GString * g_gopher_get (gchar *url) {
 
-	GURI    * uri 	= g_uri_new(url);
+	GURI    * uri 	= g_uri_new (url);
 	GError  * error = NULL;
-	GString * page	= g_string_new("");
+	GString * page	= g_string_new ("");
+	GTimer	* timer = g_timer_new ();
 
 	gchar   buffer[1024];
 	gint	buffpos  = 0;
@@ -45,6 +55,8 @@ GString * g_gopher_get (gchar *url) {
 	GSocket * socket = g_gopher_socket_connect(uri->hostname, uri->port, error);
 
 	if (socket) {
+		g_timer_start (timer);
+
 		gchar * locator = g_strjoin(NULL, uri->path, "\n", NULL);
 		g_socket_send_with_blocking(socket, locator, strlen(locator), FALSE, NULL, NULL);
 		g_free(locator);
@@ -55,10 +67,15 @@ GString * g_gopher_get (gchar *url) {
 			}
 			/*g_print("\n\n=>> Got %d/%d bytes\n\n", received, total += received);*/
 		}
+
+		g_timer_stop (timer);
+		g_debug("Got page in %f", g_timer_elapsed (timer, NULL));
+		g_timer_destroy (timer);
 	} else {
 		g_warning("%s", error->message);
 		g_free(error);
 	}
+
 
 
 	/* TODO Convert if needed */
@@ -89,12 +106,24 @@ GString * g_gopher_get (gchar *url) {
 	return page;
 }
 
+//
+// Async Networking
+//
 
-void g_gopher_get_async () {
+void
+g_gopher_get_async (GAsyncReadyCallback callback, gpointer user_data)
+{
+	GString *string;
+	GSimpleAsyncResult *result;
+
+	result = g_simple_async_result_new (NULL,
+			callback,
+			user_data,
+			g_gopher_get_async);
+
 }
 
-gboolean g_gopher_get_finish () {
-}
+GString *g_gopher_get_finish (GAsyncResult *result, GError **error)
+{
 
-GString * g_gopher_get_function () {
 }
