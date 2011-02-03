@@ -58,7 +58,6 @@ on_addressbar_changed (GtkEntry *entry, gpointer user_data)
 static gboolean
 on_viewport_scroll_event (ClutterActor *_self, ClutterEvent *event, gpointer _page)
 {
-
 	ClutterActor *view = viewport;
 	ClutterActor *page = current_page->actor;
 

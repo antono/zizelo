@@ -38,7 +38,7 @@ zz_page_parse (ZzPage *page)
 	gchar *line;
 	gchar type;
 
-	while (lines && !(strcmp(*lines, ".") == 0) ) {
+	while (*lines && !(strcmp(*lines, ".") == 0)) {
 
 		line = *lines;
 		type = line[0];
