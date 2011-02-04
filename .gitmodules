@@ -1,0 +1,3 @@
+[submodule "wiki"]
+	path = wiki
+	url = git@gitorious.org:zizelo/zizelo-gitorious-wiki.git
