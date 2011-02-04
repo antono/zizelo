@@ -267,7 +267,7 @@
     <property name="type_hint">dialog</property>
     <property name="program_name">Zizelo</property>
     <property name="version">0.1</property>
-    <property name="website">http://antono.info/zizelo</property>
+    <property name="website">http://gitorious.org/zizelo/pages/Home</property>
     <property name="website_label" translatable="yes">Zizelo Homepage</property>
     <property name="license" translatable="yes">GPL v3</property>
     <property name="authors">Antono Vasiljev</property>
