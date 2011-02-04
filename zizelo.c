@@ -9,6 +9,9 @@
 #include "gophernet.h"
 #include "zizelo.h"
 
+#define BUILDER "data/zizelo.ui"
+
+
 GtkBuilder		*builder;
 ClutterActor		*stage;
 ClutterActor		*viewport;
@@ -16,7 +19,6 @@ ZzPage			*current_page = NULL;
 GtkWidget		*addressbar;
 gint			scroll_factor = 30;
 
-#define BUILDER "data/zizelo.ui"
 
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
@@ -118,8 +120,6 @@ zz_open(gchar *uri, gboolean is_menu)
 	user_data->uri = uri;
 
 	g_gopher_get_async(NULL, uri, zz_open_handle_result, user_data);
-
-	g_free(uri);
 }
 
 void
@@ -260,9 +260,10 @@ main(int argc, char *argv[]) {
 
 	gtk_widget_show_all(window);
 
-
 	zz_open(g_strdup("gopher://antono.info:70/"), TRUE);
 
 	gtk_main();
+
+
 	return EXIT_SUCCESS;
 }
