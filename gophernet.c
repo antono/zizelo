@@ -57,7 +57,7 @@ GString * g_gopher_get (gchar *url, GSimpleAsyncResult *result) {
 	if (socket) {
 		g_timer_start (timer);
 
-		gchar * locator = g_strjoin(NULL, uri->path, "\n", NULL);
+		gchar * locator = g_strjoin(NULL, uri->path, "\r\n", NULL);
 		g_socket_send_with_blocking(socket, locator, strlen(locator), FALSE, NULL, NULL);
 		g_free(locator);
 		

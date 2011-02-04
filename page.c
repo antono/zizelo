@@ -53,26 +53,22 @@ zz_page_parse (ZzPage *page)
 		if (type == 'i') {
 			// g_debug("STRPD:\t%s\n", desc);
 			zz_page_add_text(page, desc);
-		}
-		if (type == '0') {
+		} else if (type == '0') {
 			// g_debug("DIR.:\t%s\t%s", desc, zz_gopherlink_to_uri(strdup("gopher"), line));
 			g_string_append (page->raw_page_clean, zz_gopherlink_to_uri(strdup("gopher"), line));
 			g_string_append (page->raw_page_clean, "\n");
 			zz_page_add_link(page, desc, zz_gopherlink_to_uri(strdup("gopher"), line), type);
-		}
-		if (type == '1' || type == 'I') {
+		} else if (type == '1' || type == 'I') {
 			// g_debug("FILE:\t%s\t%s", desc, zz_gopherlink_to_uri("gopher", line));
 			g_string_append (page->raw_page_clean, zz_gopherlink_to_uri(strdup("gopher"), line));
 			g_string_append (page->raw_page_clean, "\n");
 			zz_page_add_link(page, desc, zz_gopherlink_to_uri(strdup("gopher"), line), type);
-		}
-		if (type == '8') {
+		} else if (type == '8') {
 			// g_debug("FILE:\t%s\t%s", desc, zz_gopherlink_to_uri("telnet", line), type);
 			g_string_append (page->raw_page_clean, zz_gopherlink_to_uri(strdup("telnet"), line));
 			g_string_append (page->raw_page_clean, "\n");
 			zz_page_add_link(page, desc, zz_gopherlink_to_uri(strdup("telnet"), line), type);
-		}
-		if (type == 'h') {
+		} else if (type == 'h') {
 			// g_debug("FILE:\t%s\t%s", desc, zz_gopherlink_to_uri("http", line));
 			g_string_append (page->raw_page_clean, zz_gopherlink_to_uri(strdup("http"), line));
 			g_string_append (page->raw_page_clean, "\n");
