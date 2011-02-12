@@ -12,14 +12,6 @@
 #define BUILDER "data/zizelo.ui"
 
 
-GtkBuilder		*builder;
-ClutterActor		*stage;
-ClutterActor		*viewport;
-ZzPage			*current_page = NULL;
-GtkWidget		*addressbar;
-gint			scroll_factor = 30;
-
-
 G_MODULE_EXPORT void
 on_about_menu_item_activate_cb (GtkMenuItem *menuitem, gpointer user_data)
 {
