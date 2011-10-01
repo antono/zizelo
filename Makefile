@@ -5,8 +5,8 @@ NAME    = zizelo
 VERSION = 0.1
 
 CC      = gcc
-CFLAGS  = -ggdb -O0 -Wall -Wl,--export-dynamic -I.
-LIBS    = gio-2.0 gtk+-2.0 clutter-1.0 clutter-gtk-0.10 gmodule-export-2.0
+CFLAGS  = -ggdb -O0 -Wl,--export-dynamic -I.
+LIBS    = gio-2.0 gtk+-3.0 clutter-1.0 clutter-gtk-1.0 gmodule-export-2.0
 OBJ 	= page.o gophernet.o guri.o
 HEADERS = page.h gophernet.h guri.h
 

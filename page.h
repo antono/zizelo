@@ -22,7 +22,7 @@ typedef struct {
 } ZzLink;
 
 typedef struct {
-	ClutterText *actor;
+	ClutterActor *actor;
 	gchar *raw;
 } ZzText;
 
