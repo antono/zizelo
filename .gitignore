@@ -1,9 +1,8 @@
-*swp
-*o
-core
-glopher
-tags
-page
-gopher.txt
-.redcar/
-TAGS
+node_modules
+dist
+test/temp
+.sass-cache
+bower_components
+.tmp
+test/bower_components/
+npm-debug.log
